@@ -89,6 +89,7 @@ func New(stateDir string, options ...RemoteOption) (_ Remote, err error) {
 		r.rpcAddr = filepath.Join(stateDir, containerdSockFilename)
 	}
 
+	// create a process -> containerd
 	if r.startDaemon {
 		if err := r.runContainerdDaemon(); err != nil {
 			return nil, err

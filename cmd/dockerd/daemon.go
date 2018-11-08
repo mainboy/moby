@@ -209,6 +209,7 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 	api := apiserver.New(serverConfig)
 	cli.api = api
 
+	// create many hosts for client to connect
 	for i := 0; i < len(cli.Config.Hosts); i++ {
 		var err error
 		if cli.Config.Hosts[i], err = dopts.ParseHost(cli.Config.TLS, cli.Config.Hosts[i]); err != nil {
@@ -251,6 +252,7 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 	cli.TrustKeyPath = opts.common.TrustKey
 
 	registryService := registry.NewService(cli.Config.ServiceOptions)
+	// create child process --> containerd
 	containerdRemote, err := libcontainerd.New(cli.getLibcontainerdRoot(), cli.getPlatformRemoteOptions()...)
 	if err != nil {
 		return err

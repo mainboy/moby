@@ -141,6 +141,16 @@ validate: build ## validate DCO, Seccomp profile generation, gofmt,\n./pkg/ isol
 win: build ## cross build the binary for windows
 	$(DOCKER_RUN_DOCKER) hack/make.sh win
 
+tags:
+	echo "  Gen       " $@
+	rm -rf tags
+	find . -name '*.[hcS]' ! -path './.*' | xargs ctags -a
+
+cscope:
+	echo "  Gen       " $@
+	find . -name '*.[hcS]' ! -path './.*' ! -type l -print > cscope.files
+	cscope -bkqu
+
 .PHONY: swagger-gen
 swagger-gen:
 	docker run --rm -v $(PWD):/go/src/github.com/docker/docker \
