@@ -53,11 +53,13 @@ func (daemon *Daemon) containerCreate(params types.ContainerCreateConfig, manage
 	if params.HostConfig == nil {
 		params.HostConfig = &containertypes.HostConfig{}
 	}
+	// 调整一些配置，例如CPU如果超量了，就设置成系统允许的最大的
 	err = daemon.adaptContainerSettings(params.HostConfig, params.AdjustCPUShares)
 	if err != nil {
 		return containertypes.ContainerCreateCreatedBody{Warnings: warnings}, err
 	}
 
+	// 创建容器
 	container, err := daemon.create(params, managed)
 	if err != nil {
 		return containertypes.ContainerCreateCreatedBody{Warnings: warnings}, daemon.imageNotExistToErrcode(err)
@@ -88,6 +90,7 @@ func (daemon *Daemon) create(params types.ContainerCreateConfig, managed bool) (
 		imgID = img.ID()
 	}
 
+	// 再次检查配置
 	if err := daemon.mergeAndVerifyConfig(params.Config, img); err != nil {
 		return nil, err
 	}
@@ -96,6 +99,7 @@ func (daemon *Daemon) create(params types.ContainerCreateConfig, managed bool) (
 		return nil, err
 	}
 
+	// 创建容器
 	if container, err = daemon.newContainer(params.Name, params.Config, params.HostConfig, imgID, managed); err != nil {
 		return nil, err
 	}
@@ -114,6 +118,7 @@ func (daemon *Daemon) create(params types.ContainerCreateConfig, managed bool) (
 	container.HostConfig.StorageOpt = params.HostConfig.StorageOpt
 
 	// Set RWLayer for container after mount labels have been set
+	// 创建读写层，才能在容器里面读写，前面的layer都包含在image里
 	if err := daemon.setRWLayer(container); err != nil {
 		return nil, err
 	}
@@ -125,6 +130,7 @@ func (daemon *Daemon) create(params types.ContainerCreateConfig, managed bool) (
 	if err := idtools.MkdirAs(container.Root, 0700, rootUID, rootGID); err != nil {
 		return nil, err
 	}
+	// 设置checkpoint目录
 	if err := idtools.MkdirAs(container.CheckpointDir(), 0700, rootUID, rootGID); err != nil {
 		return nil, err
 	}

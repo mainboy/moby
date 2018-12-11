@@ -148,6 +148,7 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 		DisableColors:   cli.Config.RawLogs,
 	})
 
+	// 设置不屏蔽的信号022, 也就是文件权限都设置为755
 	if err := setDefaultUmask(); err != nil {
 		return fmt.Errorf("Failed to set umask: %v", err)
 	}
@@ -160,6 +161,7 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 
 	// Create the daemon root before we create ANY other files (PID, or migrate keys)
 	// to ensure the appropriate ACL is set (particularly relevant on Windows)
+	// 设置daemon执行时候的根目录
 	if err := daemon.CreateDaemonRoot(cli.Config); err != nil {
 		return err
 	}
@@ -184,6 +186,7 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 		CorsHeaders: cli.Config.CorsHeaders,
 	}
 
+	// 是否走TLS
 	if cli.Config.TLS {
 		tlsOptions := tlsconfig.Options{
 			CAFile:   cli.Config.CommonTLSOptions.CAFile,
@@ -209,7 +212,7 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 	api := apiserver.New(serverConfig)
 	cli.api = api
 
-	// create many hosts for client to connect
+	// create many hosts for client to connect, 设置API server
 	for i := 0; i < len(cli.Config.Hosts); i++ {
 		var err error
 		if cli.Config.Hosts[i], err = dopts.ParseHost(cli.Config.TLS, cli.Config.Hosts[i]); err != nil {
@@ -262,6 +265,7 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 		<-stopc // wait for daemonCli.start() to return
 	})
 
+	// 实例化daemon
 	d, err := daemon.NewDaemon(cli.Config, registryService, containerdRemote)
 	if err != nil {
 		return fmt.Errorf("Error starting daemon: %v", err)
@@ -306,10 +310,12 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 	cli.d = d
 
 	// initMiddlewares needs cli.d to be populated. Dont change this init order.
+	// 初始化中间件
 	if err := cli.initMiddlewares(api, serverConfig); err != nil {
 		logrus.Fatalf("Error creating middlewares: %v", err)
 	}
 	d.SetCluster(c)
+	// 初始化router
 	initRouter(api, d, c)
 
 	cli.setupConfigReloadTrap()
@@ -318,6 +324,7 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 	// We need to start it as a goroutine and wait on it so
 	// daemon doesn't exit
 	serveAPIWait := make(chan error)
+	// 开始执行
 	go api.Wait(serveAPIWait)
 
 	// after the daemon is done setting up we can notify systemd api
@@ -325,6 +332,7 @@ func (cli *DaemonCli) start(opts daemonOptions) (err error) {
 
 	// Daemon is fully initialized and handling API traffic
 	// Wait for serve API to complete
+	// 如果api server停了，daemon就跟着退出
 	errAPI := <-serveAPIWait
 	c.Cleanup()
 	shutdownDaemon(d)

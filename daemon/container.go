@@ -125,6 +125,7 @@ func (daemon *Daemon) newContainer(name string, config *containertypes.Config, h
 	}
 	entrypoint, args := daemon.getEntrypointAndArgs(config.Entrypoint, config.Cmd)
 
+	// 创建基本容器配置
 	base := daemon.newBaseContainer(id)
 	base.Created = time.Now().UTC()
 	base.Managed = managed

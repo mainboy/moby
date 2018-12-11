@@ -185,6 +185,7 @@ func (ctr *container) newProcess(friendlyName string) *process {
 	}
 }
 
+// 处理容器状态的变化
 func (ctr *container) handleEvent(e *containerd.Event) error {
 	ctr.client.lock(ctr.containerID)
 	defer ctr.client.unlock(ctr.containerID)
